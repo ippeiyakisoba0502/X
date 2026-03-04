@@ -47,7 +47,7 @@ javascript:(function () {
   }
 
   function run(startDateStr, endDateStr, waitTimeStr, maxCountStr) {
-    var waitTime = Math.max(1, parseInt(waitTimeStr, 10) || 5) * 1000;
+    var waitTime = Math.max(1, parseInt(waitTimeStr, 10) || 15) * 1000;
     var maxCount = parseInt(maxCountStr, 10);
     if (isNaN(maxCount) || maxCount < 1) {
       maxCount = 0; // 0 = no limit
@@ -484,7 +484,7 @@ javascript:(function () {
       '<label style=\'display:block;color:#555;margin-bottom:5px;\'>終了日（任意）：</label>' +
       '<input type=\'date\' id=\'xAlertEndDate\' style=\'width:100%;padding:8px;margin-bottom:15px;border:1px solid #ccc;border-radius:5px;box-sizing:border-box;text-align:center;\'/>' +
       '<label style=\'display:block;color:#555;margin-bottom:5px;\'>待機時間 (秒)：</label>' +
-      '<input type=\'number\' id=\'xAlertWaitTime\' value=\'5\' min=\'1\' style=\'width:100%;padding:8px;margin-bottom:20px;border:1px solid #ccc;border-radius:5px;box-sizing:border-box;text-align:center;\'/>' +
+      '<input type=\'number\' id=\'xAlertWaitTime\' value=\'15\' min=\'1\' style=\'width:100%;padding:8px;margin-bottom:20px;border:1px solid #ccc;border-radius:5px;box-sizing:border-box;text-align:center;\'/>' +
       '<button type=\'button\' id=\'xAlertConfirmBtn\' style=\'width:100%;padding:10px;background:#dc3545;color:#fff;border:none;border-radius:5px;cursor:pointer;font-size:16px;margin-bottom:10px;\'>開始</button>' +
       '<button type=\'button\' id=\'xAlertCloseBtn\' style=\'width:100%;padding:10px;background:#6c757d;color:#fff;border:none;border-radius:5px;cursor:pointer;font-size:16px;\'>閉じる</button>' +
       '</div></div>';
@@ -498,7 +498,7 @@ javascript:(function () {
       btnStart.addEventListener('click', function () {
         var startDate = (inputStart && inputStart.value) ? inputStart.value.trim() : '';
         var endDate = (inputEnd && inputEnd.value) ? inputEnd.value.trim() : '';
-        var waitTime = (inputWait && inputWait.value) ? inputWait.value : '5';
+        var waitTime = (inputWait && inputWait.value) ? inputWait.value : '15';
         if (dlg.parentNode) dlg.parentNode.removeChild(dlg);
         callback(startDate, endDate, waitTime, '');
       });
