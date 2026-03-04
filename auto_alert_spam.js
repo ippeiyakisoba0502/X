@@ -422,7 +422,7 @@ javascript:(function () {
               return;
             }
             isActivelyProcessing = false;
-            var rem = 10 + Math.floor(Math.random() * 9);
+            var rem = 10 + Math.floor(Math.random() * 11);
             currentInterval = setInterval(function () {
               try {
                 updateProgress(progressDiv, successCount, totalDisplay, '次の操作まで: ' + rem + '秒');
