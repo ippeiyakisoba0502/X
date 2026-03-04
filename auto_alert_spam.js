@@ -522,7 +522,7 @@ javascript:(function () {
     dlg.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:2147483647;display:flex;align-items:center;justify-content:center;font-family:Arial,sans-serif;';
     dlg.innerHTML =
       '<div style=\'position:relative;background:#f9f9f9;padding:0;border-radius:10px;box-shadow:0 4px 20px rgba(0,0,0,0.3);width:320px;max-width:95vw;overflow:hidden;\'>' +
-      '<div style=\'background:#dc3545;padding:10px;text-align:center;\'><span style=\'color:#fff;font-size:18px;\'>X通報ツール</span></div>' +
+      '<div style=\'background:#dc3545;padding:10px;text-align:center;\'><span style=\'color:#fff;font-size:18px;\'>X 自動報告ツール</span></div>' +
       '<div style=\'padding:15px;\'>' +
       '<div style=\'font-size:14px;color:#444;text-align:left;margin-bottom:15px;line-height:1.4;\'>' +
       'タイムライン上のポストに対して、<br/>「ヘイト、攻撃的な行為、または嫌がらせ」として通報を自動で行います。<br/>' +
