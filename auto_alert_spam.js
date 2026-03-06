@@ -111,8 +111,20 @@ javascript:(function () {
 
     var mutationDebounce = null;
     var isActivelyProcessing = false;
+    var lastScrollTime = 0;
+    var SCROLL_IGNORE_MS = 3500;
+    function onScrollForMutation() {
+      lastScrollTime = Date.now();
+    }
+    var scrollTargetEl = document.querySelector('[data-testid=\'primaryColumn\']') || document.querySelector('main') || document.body;
+    try {
+      window.addEventListener('scroll', onScrollForMutation, { passive: true });
+      document.addEventListener('scroll', onScrollForMutation, { passive: true, capture: true });
+      if (scrollTargetEl) scrollTargetEl.addEventListener('scroll', onScrollForMutation, { passive: true });
+    } catch (err) {}
     var observer = new MutationObserver(function (mutations) {
       if (isActivelyProcessing) return;
+      if (Date.now() - lastScrollTime < SCROLL_IGNORE_MS) return;
       var removed = 0;
       for (var m = 0; m < mutations.length; m++) {
         removed += (mutations[m].removedNodes && mutations[m].removedNodes.length) || 0;
@@ -122,11 +134,30 @@ javascript:(function () {
       mutationDebounce = setTimeout(function () {
         mutationDebounce = null;
         if (isActivelyProcessing) return;
+        if (Date.now() - lastScrollTime < SCROLL_IGNORE_MS) return;
         scheduleRetry();
       }, 800);
     });
     var observeTarget = document.querySelector('[data-testid=\'primaryColumn\']') || document.querySelector('main') || document.body;
     observer.observe(observeTarget, { childList: true, subtree: true });
+
+    function onVisibilityChange() {
+      if (document.visibilityState !== 'visible') return;
+      if (!currentInterval) return;
+      try {
+        clearInterval(currentInterval);
+        currentInterval = null;
+        if (reloadRetryTimeout) {
+          clearTimeout(reloadRetryTimeout);
+          reloadRetryTimeout = null;
+        }
+        try {
+          updateProgress(progressDiv, successCount, totalDisplayFn(), 'タブが再表示されました。続行中...');
+        } catch (err) {}
+        stepFn();
+      } catch (err) {}
+    }
+    document.addEventListener('visibilitychange', onVisibilityChange);
 
     var currentInterval = null;
     var noTargetRetryCount = 0;
@@ -196,6 +227,10 @@ javascript:(function () {
     function cleanupErrorHandler() {
       errorHandlerRef.active = false;
       window.onerror = oldOnerror;
+      document.removeEventListener('visibilitychange', onVisibilityChange);
+      try { window.removeEventListener('scroll', onScrollForMutation, { passive: true }); } catch (err) {}
+      try { document.removeEventListener('scroll', onScrollForMutation, { passive: true, capture: true }); } catch (err) {}
+      try { if (scrollTargetEl) scrollTargetEl.removeEventListener('scroll', onScrollForMutation, { passive: true }); } catch (err) {}
       try { if (originalFetch) window.fetch = originalFetch; } catch (err) {}
       try { if (originalXHR) window.XMLHttpRequest = originalXHR; } catch (err) {}
     }
@@ -508,7 +543,7 @@ javascript:(function () {
             var rem = 30 + Math.floor(Math.random() * 31);
             currentInterval = setInterval(function () {
               try {
-                updateProgress(progressDiv, successCount, totalDisplay, '次の操作まで: ' + rem + '秒');
+                updateProgress(progressDiv, successCount, totalDisplay, '次の操作まで: ' + rem + '秒\n（別タブだと遅れる場合があります。タブを前面に戻すと続行します）');
                 rem--;
                 if (rem < 0) {
                   clearInterval(currentInterval);
