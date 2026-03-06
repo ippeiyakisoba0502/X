@@ -133,9 +133,36 @@ javascript:(function () {
     var NO_TARGET_RETRY_MAX = 5;
     var stepCallCount = 0;
     var processedTweets = new WeakSet();
+    var processedTweetIds = new Set();
     var errorHandlerRef = { active: true };
     var errorRetryScheduled = false;
+    var reportApiBlockedHandled = false;
     var oldOnerror = window.onerror;
+    var originalFetch = window.fetch;
+    var originalXHR = window.XMLHttpRequest;
+
+    function handleReportApiBlocked() {
+      if (reportApiBlockedHandled) return;
+      reportApiBlockedHandled = true;
+      if (currentInterval) {
+        try { clearInterval(currentInterval); } catch (err) {}
+        currentInterval = null;
+      }
+      if (reloadRetryTimeout) {
+        try { clearTimeout(reloadRetryTimeout); } catch (err) {}
+        reloadRetryTimeout = null;
+      }
+      isActivelyProcessing = false;
+      try { if (originalFetch) window.fetch = originalFetch; } catch (err) {}
+      try { if (originalXHR) window.XMLHttpRequest = originalXHR; } catch (err) {}
+      cleanupErrorHandler();
+      try {
+        if (document.body.contains(progressDiv)) {
+          updateProgress(progressDiv, successCount, totalDisplayFn(), 'X側で操作が制限されました。2〜3時間おくか、アカウントを変更してください。');
+        }
+      } catch (err) {}
+      alert('報告APIで400エラーが発生しました。\n\nX側で操作が制限されている可能性があります。\n2〜3時間おくか、アカウントを変更してから再度お試しください。');
+    }
 
     function handleError() {
       if (!errorHandlerRef.active || errorRetryScheduled) return;
@@ -169,6 +196,56 @@ javascript:(function () {
     function cleanupErrorHandler() {
       errorHandlerRef.active = false;
       window.onerror = oldOnerror;
+      try { if (originalFetch) window.fetch = originalFetch; } catch (err) {}
+      try { if (originalXHR) window.XMLHttpRequest = originalXHR; } catch (err) {}
+    }
+
+    window.fetch = function (input, init) {
+      var url = (typeof input === 'string') ? input : (input && input.url);
+      return originalFetch.apply(this, arguments).then(function (response) {
+        if (url && url.indexOf('report/flow.json') !== -1 && response.status === 400) {
+          handleReportApiBlocked();
+        }
+        return response;
+      });
+    };
+    window.XMLHttpRequest = function () {
+      var xhr = new originalXHR();
+      var origOpen = xhr.open;
+      xhr.open = function (method, url) {
+        this._reportFlowUrl = (url && url.indexOf('report/flow.json') !== -1);
+        return origOpen.apply(this, arguments);
+      };
+      var origSend = xhr.send;
+      xhr.send = function () {
+        if (this._reportFlowUrl) {
+          xhr.addEventListener('readystatechange', function () {
+            if (xhr.readyState === 4 && xhr.status === 400) {
+              handleReportApiBlocked();
+            }
+          });
+        }
+        return origSend.apply(this, arguments);
+      };
+      return xhr;
+    };
+
+    function getTweetStatusId(article) {
+      if (!article || !document.body.contains(article)) return null;
+      var linkEl = article.querySelector('a[href*=\'/status/\']');
+      var href = (linkEl && (linkEl.getAttribute('href') || linkEl.href)) || '';
+      var m = href.match(/\/status\/(\d+)/);
+      return m ? m[1] : null;
+    }
+
+    function getTweetLogInfo(article) {
+      if (!article || !document.body.contains(article)) return { text: '(取得不可)', url: '' };
+      var textEl = article.querySelector('[data-testid=\'tweetText\']');
+      var text = (textEl && (textEl.innerText || textEl.textContent || '').trim()) || '(テキストなし)';
+      if (text.length > 80) text = text.slice(0, 80) + '...';
+      var linkEl = article.querySelector('a[href*=\'/status/\']');
+      var url = (linkEl && linkEl.getAttribute('href')) ? (linkEl.href || linkEl.getAttribute('href') || '') : '';
+      return { text: text, url: url };
     }
 
     function findNextTargetTweet() {
@@ -177,6 +254,8 @@ javascript:(function () {
         var article = articles[i];
         if (!document.body.contains(article)) continue;
         if (processedTweets.has(article)) continue;
+        var statusId = getTweetStatusId(article);
+        if (statusId && processedTweetIds.has(statusId)) continue;
 
         var tweetDate = getTweetDate(article);
         if (useDateFilter) {
@@ -281,6 +360,8 @@ javascript:(function () {
         onDone(false);
         return;
       }
+      var logInfo = getTweetLogInfo(article);
+      console.log('[X自動報告] 処理対象ポスト:', logInfo.text, logInfo.url ? '\nURL: ' + logInfo.url : '');
       try {
         article.scrollIntoView({ behavior: 'smooth', block: 'center' });
       } catch (err) {}
@@ -407,6 +488,8 @@ javascript:(function () {
         var targetTweet = findNextTargetTweet();
         if (targetTweet) {
           processedTweets.add(targetTweet);
+          var targetStatusId = getTweetStatusId(targetTweet);
+          if (targetStatusId) processedTweetIds.add(targetStatusId);
           processTweet(targetTweet, function (success) {
             if (success) {
               successCount++;
@@ -422,7 +505,7 @@ javascript:(function () {
               return;
             }
             isActivelyProcessing = false;
-            var rem = 10 + Math.floor(Math.random() * 11);
+            var rem = 30 + Math.floor(Math.random() * 31);
             currentInterval = setInterval(function () {
               try {
                 updateProgress(progressDiv, successCount, totalDisplay, '次の操作まで: ' + rem + '秒');
