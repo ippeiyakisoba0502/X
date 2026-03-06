@@ -141,20 +141,47 @@ javascript:(function () {
     var observeTarget = document.querySelector('[data-testid=\'primaryColumn\']') || document.querySelector('main') || document.body;
     observer.observe(observeTarget, { childList: true, subtree: true });
 
+    function closeReportDialogWithEscape() {
+      try {
+        var ev = new KeyboardEvent('keydown', { key: 'Escape', keyCode: 27, bubbles: true });
+        document.dispatchEvent(ev);
+        document.body.dispatchEvent(ev);
+      } catch (err) {}
+    }
+
     function onVisibilityChange() {
       if (document.visibilityState !== 'visible') return;
-      if (!currentInterval) return;
       try {
-        clearInterval(currentInterval);
-        currentInterval = null;
-        if (reloadRetryTimeout) {
-          clearTimeout(reloadRetryTimeout);
-          reloadRetryTimeout = null;
+        if (currentInterval) {
+          clearInterval(currentInterval);
+          currentInterval = null;
+          if (reloadRetryTimeout) {
+            clearTimeout(reloadRetryTimeout);
+            reloadRetryTimeout = null;
+          }
+          try {
+            updateProgress(progressDiv, successCount, totalDisplayFn(), 'タブが再表示されました。続行中...');
+          } catch (err) {}
+          stepFn();
+          return;
         }
-        try {
-          updateProgress(progressDiv, successCount, totalDisplayFn(), 'タブが再表示されました。続行中...');
-        } catch (err) {}
-        stepFn();
+        var dlg = findReportDialog();
+        if (dlg && document.body.contains(dlg)) {
+          isActivelyProcessing = false;
+          closeReportDialogWithEscape();
+          try {
+            updateProgress(progressDiv, successCount, totalDisplayFn(), 'モーダルを閉じて続行します...');
+          } catch (err) {}
+          setTimeout(function () {
+            closeReportDialogWithEscape();
+            setTimeout(function () {
+              try {
+                updateProgress(progressDiv, successCount, totalDisplayFn(), '再開中...');
+              } catch (err) {}
+              stepFn();
+            }, 400);
+          }, 300);
+        }
       } catch (err) {}
     }
     document.addEventListener('visibilitychange', onVisibilityChange);
