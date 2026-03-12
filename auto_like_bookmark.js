@@ -95,24 +95,38 @@ javascript:(function () {
     });
     var observeTarget = document.querySelector('[data-testid="primaryColumn"]') || document.querySelector('main') || document.body;
     observer.observe(observeTarget, { childList: true, subtree: true });
+    function labelMatchesAny(label, candidates, exclude) {
+      if (!label) return false;
+      if (exclude) {
+        var exc = Array.isArray(exclude) ? exclude : [exclude];
+        for (var e = 0; e < exc.length; e++) {
+          if (label.indexOf(exc[e]) !== -1) return false;
+        }
+      }
+      var arr = Array.isArray(candidates) ? candidates : [candidates];
+      for (var c = 0; c < arr.length; c++) {
+        if (label.indexOf(arr[c]) !== -1) return true;
+      }
+      return false;
+    }
     var actions;
     if (actionType === 'like') {
-      actions = [{ target: 'いいねする', done: 'いいねしました' }];
+      actions = [{ target: ['いいねする', 'Like'], done: ['いいねしました', 'Liked'], exclude: ['Liked'] }];
     } else if (actionType === 'unlike') {
-      actions = [{ target: 'いいねしました', done: 'いいねする' }];
+      actions = [{ target: ['いいねしました', 'Liked'], done: ['いいねする', 'Like'] }];
     } else if (actionType === 'bookmark') {
-      actions = [{ target: 'ブックマーク', done: 'ブックマーク済み' }];
+      actions = [{ target: ['ブックマーク', 'Bookmark'], done: ['ブックマーク済み', 'Bookmarked'], exclude: ['Bookmarked'] }];
     } else if (actionType === 'unbookmark') {
-      actions = [{ target: 'ブックマーク済み', done: 'ブックマーク' }];
+      actions = [{ target: ['ブックマーク済み', 'Bookmarked'], done: ['ブックマーク', 'Bookmark'] }];
     } else if (actionType === 'both_on') {
       actions = [
-        { target: 'いいねする', done: 'いいねしました' },
-        { target: 'ブックマーク', done: 'ブックマーク済み' }
+        { target: ['いいねする', 'Like'], done: ['いいねしました', 'Liked'], exclude: ['Liked'] },
+        { target: ['ブックマーク', 'Bookmark'], done: ['ブックマーク済み', 'Bookmarked'], exclude: ['Bookmarked'] }
       ];
     } else {
       actions = [
-        { target: 'いいねしました', done: 'いいねする' },
-        { target: 'ブックマーク済み', done: 'ブックマーク' }
+        { target: ['いいねしました', 'Liked'], done: ['いいねする', 'Like'] },
+        { target: ['ブックマーク済み', 'Bookmarked'], done: ['ブックマーク', 'Bookmark'] }
       ];
     }
 
@@ -141,7 +155,7 @@ javascript:(function () {
         for (var i = 0; i < allButtons.length; i++) {
           if (!document.body.contains(allButtons[i])) continue;
           var label = allButtons[i].getAttribute('aria-label') || '';
-          if (label.indexOf(actions[0].target) !== -1) {
+          if (labelMatchesAny(label, actions[0].target, actions[0].exclude)) {
             var container = allButtons[i].closest('article') || allButtons[i].closest('[data-testid="tweet"]') || document.body;
             if (!document.body.contains(container)) continue;
             if (useDateFilter) {
@@ -180,7 +194,7 @@ javascript:(function () {
                       return;
                     }
                     var newLabel = firstBtn.getAttribute('aria-label') || '';
-                    if (newLabel.indexOf(actions[0].done) !== -1) {
+                    if (labelMatchesAny(newLabel, actions[0].done)) {
                       successCount++;
                       noTargetRetryCount = 0;
                     }
@@ -230,7 +244,7 @@ javascript:(function () {
               for (var j = 0; j < btns.length; j++) {
                 if (!document.body.contains(btns[j])) continue;
                 var l = btns[j].getAttribute('aria-label') || '';
-                if (l.indexOf(act.target) !== -1) {
+                if (labelMatchesAny(l, act.target, act.exclude)) {
                   btn = btns[j];
                   break;
                 }
