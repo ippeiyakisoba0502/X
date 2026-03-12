@@ -334,21 +334,41 @@ javascript:(function () {
 
   (function (callback) {
     var dlg = document.createElement('div');
-    dlg.id = 'customDialog';
+    dlg.id = 'xLikeBookmarkDialogRoot';
     dlg.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:2147483647;display:flex;align-items:center;justify-content:center;font-family:Arial,sans-serif;';
-    dlg.innerHTML = '<div style="position:relative;background:#f9f9f9;padding:0;border-radius:10px;box-shadow:0 4px 20px rgba(0,0,0,0.3);width:300px;max-width:95vw;overflow:hidden;"><div style="background:#007BFF;padding:10px;text-align:center;"><span style="color:#fff;font-size:18px;">X 自動いいね・報告ツール</span></div><div style="padding:15px;"><div style="font-size:16px;color:#444;text-align:center;margin-bottom:15px;">設定オプション</div><label style="display:block;color:#555;margin-bottom:5px;">操作：</label><select id="actionType" style="width:100%;padding:8px 0;margin-bottom:15px;border:1px solid #ccc;border-radius:5px;box-sizing:border-box;text-align:center;"><option value="like">いいね</option><option value="unlike">いいね解除</option><option value="bookmark">ブックマーク</option><option value="unbookmark">ブックマーク解除</option><option value="both_on" selected>いいね&amp;ブックマーク（両方ON）</option><option value="both_off">いいね&amp;ブックマーク（両方OFF）</option></select><input type="hidden" id="repeatCount" value="5"/><label style="display:block;color:#555;margin-bottom:5px;">開始時期（任意）：</label><input type="date" id="startDate" style="width:100%;padding:8px;margin-bottom:15px;border:1px solid #ccc;border-radius:5px;box-sizing:border-box;text-align:center;"/><label style="display:block;color:#555;margin-bottom:5px;">終了時期（任意）：</label><input type="date" id="endDate" style="width:100%;padding:8px;margin-bottom:20px;border:1px solid #ccc;border-radius:5px;box-sizing:border-box;text-align:center;"/><button id="confirmButton" style="width:100%;padding:10px;background:#007BFF;color:#fff;border:none;border-radius:5px;cursor:pointer;font-size:16px;margin-bottom:10px;">開始</button><button id="closeButton" style="width:100%;padding:10px;background:#6c757d;color:#fff;border:none;border-radius:5px;cursor:pointer;font-size:16px;">閉じる</button></div></div>';
+    dlg.innerHTML =
+      '<div style=\'position:relative;background:#f9f9f9;padding:0;border-radius:10px;box-shadow:0 4px 20px rgba(0,0,0,0.3);width:320px;max-width:95vw;overflow:hidden;\'>' +
+      '<div style=\'background:#007BFF;padding:10px;text-align:center;\'><span style=\'color:#fff;font-size:18px;\'>X 自動いいね・保存ツール</span></div>' +
+      '<div style=\'padding:15px;\'>' +
+      '<div style=\'font-size:14px;color:#444;text-align:left;margin-bottom:15px;line-height:1.4;\'>' +
+      'タイムライン上のポストに対して、<br/>いいね＆ブックマーク（保存）を自動で行います。<br/>' +
+      '期間を必要に応じて指定してください。' +
+      '</div>' +
+      '<label style=\'display:block;color:#555;margin-bottom:5px;\'>開始日（任意）：</label>' +
+      '<input type=\'date\' id=\'xLikeStartDate\' style=\'width:100%;padding:8px;margin-bottom:15px;border:1px solid #ccc;border-radius:5px;box-sizing:border-box;text-align:center;\'/>' +
+      '<label style=\'display:block;color:#555;margin-bottom:5px;\'>終了日（任意）：</label>' +
+      '<input type=\'date\' id=\'xLikeEndDate\' style=\'width:100%;padding:8px;margin-bottom:20px;border:1px solid #ccc;border-radius:5px;box-sizing:border-box;text-align:center;\'/>' +
+      '<button type=\'button\' id=\'xLikeConfirmBtn\' style=\'width:100%;padding:10px;background:#007BFF;color:#fff;border:none;border-radius:5px;cursor:pointer;font-size:16px;margin-bottom:10px;\'>開始</button>' +
+      '<button type=\'button\' id=\'xLikeCloseBtn\' style=\'width:100%;padding:10px;background:#6c757d;color:#fff;border:none;border-radius:5px;cursor:pointer;font-size:16px;\'>閉じる</button>' +
+      '</div></div>';
     document.body.appendChild(dlg);
-    document.getElementById('confirmButton').addEventListener('click', function () {
-      var act = document.getElementById('actionType').value;
-      var count = document.getElementById('repeatCount').value;
-      var startDate = document.getElementById('startDate').value || '';
-      var endDate = document.getElementById('endDate').value || '';
-      document.body.removeChild(dlg);
-      callback(act, count, startDate, endDate);
-    });
-    document.getElementById('closeButton').addEventListener('click', function () {
-      document.body.removeChild(dlg);
-    });
+    var btnStart = dlg.querySelector('#xLikeConfirmBtn');
+    var btnClose = dlg.querySelector('#xLikeCloseBtn');
+    var inputStart = dlg.querySelector('#xLikeStartDate');
+    var inputEnd = dlg.querySelector('#xLikeEndDate');
+    if (btnStart) {
+      btnStart.addEventListener('click', function () {
+        var startDate = (inputStart && inputStart.value) ? inputStart.value.trim() : '';
+        var endDate = (inputEnd && inputEnd.value) ? inputEnd.value.trim() : '';
+        if (dlg.parentNode) dlg.parentNode.removeChild(dlg);
+        callback('both_on', '5', startDate, endDate);
+      });
+    }
+    if (btnClose) {
+      btnClose.addEventListener('click', function () {
+        if (dlg.parentNode) dlg.parentNode.removeChild(dlg);
+      });
+    }
   })(function (act, count, startDate, endDate) {
     run(act, count, startDate, endDate);
   });
