@@ -29,6 +29,21 @@ javascript:(function () {
     return isNaN(dt.getTime()) ? null : dt;
   }
 
+  function hasPassedDateRange(startDate, endDate) {
+    if (startDate === null && endDate === null) return false;
+    var timeEls = document.querySelectorAll('article time[datetime], [data-testid="tweet"] time[datetime]');
+    var newest = null;
+    for (var i = 0; i < timeEls.length; i++) {
+      var container = timeEls[i].closest('article') || timeEls[i].closest('[data-testid="tweet"]');
+      if (!container || !document.body.contains(container)) continue;
+      var d = getTweetDate(container);
+      if (d !== null && (newest === null || d > newest)) newest = d;
+    }
+    if (newest === null) return false;
+    if (startDate !== null && newest < startDate) return true;
+    return false;
+  }
+
   function run(actionType, repeatCount, startDateStr, endDateStr) {
     repeatCount = Math.max(1, parseInt(repeatCount, 10) || 5);
     var progressDiv = createProgressContainer();
@@ -259,6 +274,19 @@ javascript:(function () {
           }
           doClicks(0);
         } else {
+          var totalDisplay = useDateFilter ? '—' : repeatCount;
+          if (useDateFilter && hasPassedDateRange(startDate, endDate)) {
+            setTimeout(function () {
+              if (reloadRetryTimeout) return;
+              try {
+                updateProgress(progressDiv, successCount, totalDisplay, '対象期間を通過しました: 完了');
+                alert('処理が完了しました。');
+              } catch (err) {
+                scheduleRetry();
+              }
+            }, 500);
+            return;
+          }
           var scrollEl = document.querySelector('[data-testid="primaryColumn"]') || document.querySelector('main');
           var canScrollWindow = window.innerHeight + window.scrollY < document.body.scrollHeight;
           var canScrollEl = scrollEl && scrollEl.scrollHeight > scrollEl.clientHeight && (scrollEl.scrollTop + scrollEl.clientHeight < scrollEl.scrollHeight - 50);
